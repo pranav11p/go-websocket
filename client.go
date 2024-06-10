@@ -41,6 +41,9 @@ func (c *Client) readMessage() {
 	}
 	c.connection.SetPongHandler(c.PongHandler)
 
+	// If client sends data larger than allowed bytes, the ws will be closed
+	c.connection.SetReadLimit(512)
+
 	for {
 		_, payload, err := c.connection.ReadMessage()
 
