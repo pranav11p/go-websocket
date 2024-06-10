@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gorilla/websocket"
@@ -10,7 +11,7 @@ type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
 
-	egress chan []byte
+	egress chan Event
 }
 
 type ClientList map[*Client]bool
@@ -19,7 +20,7 @@ func NewClient(conn *websocket.Conn, manager *Manager) *Client {
 	return &Client{
 		connection: conn,
 		manager:    manager,
-		egress:     make(chan []byte),
+		egress:     make(chan Event),
 	}
 }
 
@@ -29,7 +30,7 @@ func (c *Client) readMessage() {
 	}()
 
 	for {
-		messageType, payload, err := c.connection.ReadMessage()
+		_, payload, err := c.connection.ReadMessage()
 
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -38,12 +39,15 @@ func (c *Client) readMessage() {
 			break
 		}
 
-		log.Println("MessageType :", messageType)
-		log.Println("Payload:", string(payload))
-		for wsClient := range c.manager.clients {
-			// log.Println("Inside add message:", wsClient)
-			wsClient.egress <- payload
+		var request Event
+		if err := json.Unmarshal(payload, &request); err != nil {
+			log.Printf("error un-marshalling request: %v", err)
+			break
 		}
+		if err := c.manager.routeEvent(request, c); err != nil {
+			log.Printf("error handling message: %v", err)
+		}
+
 	}
 }
 
@@ -61,8 +65,12 @@ func (c *Client) writeMessage() {
 					log.Println(err)
 				}
 			}
+			data, err := json.Marshal(message)
+			if err != nil {
+				log.Println(err)
+			}
 
-			if err := c.connection.WriteMessage(websocket.TextMessage, message); err != nil {
+			if err := c.connection.WriteMessage(websocket.TextMessage, data); err != nil {
 				log.Println(err)
 			}
 			log.Println("message sent")

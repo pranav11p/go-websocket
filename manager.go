@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -15,14 +17,41 @@ var (
 	}
 )
 
+var (
+	ErrEventNotSupported = errors.New("this event type is not supported")
+)
+
 type Manager struct {
 	clients ClientList
 	sync.RWMutex
+
+	handlers map[string]EventHandler
 }
 
 func NewManager() *Manager {
-	return &Manager{
+	m := Manager{
 		clients: make(ClientList),
+	}
+	m.setupEventHandlers()
+	return &m
+}
+
+func (m *Manager) setupEventHandlers() {
+	m.handlers = make(map[string]EventHandler)
+	m.handlers[EventSendMessage] = func(e Event, c *Client) error {
+		fmt.Println(e)
+		return nil
+	}
+}
+
+func (m *Manager) routeEvent(event Event, c *Client) error {
+	if handler, ok := m.handlers[event.Type]; ok {
+		if err := handler(event, c); err != nil {
+			return err
+		}
+		return nil
+	} else {
+		return ErrEventNotSupported
 	}
 }
 
