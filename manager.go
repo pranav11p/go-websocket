@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -45,10 +44,7 @@ func NewManager(ctx context.Context) *Manager {
 
 func (m *Manager) setupEventHandlers() {
 	m.handlers = make(map[string]EventHandler)
-	m.handlers[EventSendMessage] = func(e Event, c *Client) error {
-		fmt.Println(e)
-		return nil
-	}
+	m.handlers[EventSendMessage] = SendMessageHandler
 }
 
 func (m *Manager) routeEvent(event Event, c *Client) error {
