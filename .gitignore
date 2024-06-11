@@ -1,1 +1,3 @@
 .vscode/*
+server.crt
+server.key
