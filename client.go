@@ -17,7 +17,8 @@ type Client struct {
 	connection *websocket.Conn
 	manager    *Manager
 
-	egress chan Event
+	egress   chan Event
+	chatroom string
 }
 
 type ClientList map[*Client]bool

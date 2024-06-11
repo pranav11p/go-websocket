@@ -45,6 +45,7 @@ func NewManager(ctx context.Context) *Manager {
 func (m *Manager) setupEventHandlers() {
 	m.handlers = make(map[string]EventHandler)
 	m.handlers[EventSendMessage] = SendMessageHandler
+	m.handlers[EventChangeRoom] = ChangeRoomHandler
 }
 
 func (m *Manager) routeEvent(event Event, c *Client) error {

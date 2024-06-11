@@ -16,6 +16,7 @@ type EventHandler func(event Event, c *Client) error
 const (
 	EventSendMessage = "send_message"
 	EventNewMessage  = "new_message"
+	EventChangeRoom  = "change_room"
 )
 
 type SendMessageEvent struct {
@@ -26,6 +27,10 @@ type SendMessageEvent struct {
 type NewMessageEvent struct {
 	SendMessageEvent
 	Sent time.Time `json:"sent"`
+}
+
+type ChangeRoomEvent struct {
+	Name string `json:"name"`
 }
 
 func SendMessageHandler(event Event, c *Client) error {
@@ -51,8 +56,21 @@ func SendMessageHandler(event Event, c *Client) error {
 	outgoingEvent.Type = EventNewMessage
 
 	for client := range c.manager.clients {
-		client.egress <- outgoingEvent
+		if client.chatroom == c.chatroom {
+			client.egress <- outgoingEvent
+		}
 	}
+
+	return nil
+}
+
+func ChangeRoomHandler(event Event, c *Client) error {
+	var changeRoomEvent ChangeRoomEvent
+	if err := json.Unmarshal(event.Payload, &changeRoomEvent); err != nil {
+		return fmt.Errorf("error un-marshalling ChangeRoom event payload %v", err)
+	}
+
+	c.chatroom = changeRoomEvent.Name
 
 	return nil
 }
